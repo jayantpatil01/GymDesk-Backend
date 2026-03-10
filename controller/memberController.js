@@ -1,4 +1,10 @@
 import Member from '../model/MemberModel.js';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const createMember = async (req, res) => {
     try {
@@ -66,5 +72,104 @@ export const createMember = async (req, res) => {
             message: 'Internal Server Error',
             error: error.message
         });
+    }
+};
+
+export const getMembers = async (req, res) => {
+    try {
+        const adminId = req.adminId; // Get Admin ID from Auth Middleware
+        const members = await Member.findAll({ where: { adminId } });
+        res.status(200).json({
+            success: true,
+            members
+        });
+    }
+    catch (error) {
+        console.error("Get Members Error:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal Server Error',
+            error: error.message
+        });
+    }
+};
+
+export const getMemberById = async (req, res) => {
+    try {
+        const adminId = req.adminId; // Get Admin ID from Auth Middleware
+        const memberId = req.params.id; // Get Member ID from URL params
+        const member = await Member.findOne({ where: { id: memberId, adminId } });
+        if (!member) {
+            return res.status(404).json({
+                success: false,
+                message: 'Member not found'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            member
+
+        });
+    }    catch (error) {
+        console.error("Get Member By ID Error:", error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal Server Error',
+            error: error.message
+        });
+    }
+};
+
+export const deleteMember = async (req, res) => {
+    try {
+        const adminId = req.adminId;
+        const memberId = req.params.id;
+
+        // 1. Find the member first to get the image filename
+        const member = await Member.findOne({ where: { id: memberId, adminId } });
+
+        if (!member) {
+            return res.status(404).json({
+                success: false,
+                message: 'Member not found'
+            });
+        }
+
+        const imageFileName = member.aadhar_image;
+
+        // 2. Delete the database record
+        await member.destroy();
+
+        // 3. Delete the physical file if it exists
+        if (imageFileName) {
+            // Using process.cwd() ensures we start from the project root folder
+            const filePath = path.join(process.cwd(), "uploads", "aadhar", imageFileName);
+
+            // Check if file exists before trying to delete
+            if (fs.existsSync(filePath)) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error("Error deleting physical file:", err);
+                    } else {
+                        console.log(`Successfully deleted image from disk: ${imageFileName}`);
+                    }
+                });
+            } else {
+                console.warn(`File not found at ${filePath}, skipping disk deletion.`);
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Member deleted successfully'
+        });
+
+    } catch (error) {
+        console.error("Delete Member Error:", error);
+        res.status(500).json({  
+            success: false,
+            message: 'Internal Server Error',   
+            error: error.message    
+        }); 
     }
 };
