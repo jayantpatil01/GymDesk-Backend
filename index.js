@@ -9,6 +9,7 @@ dotenv.config();
 import { testConnection } from "./config/TestConnection.js";
 import authRoute from "./route/authRoute.js";
 import adminRoute from "./route/adminRoute.js";
+import memberRoute from "./route/memberRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,6 +23,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRoute);
 app.use("/api/admin", adminRoute);
+app.use("/api/member", memberRoute);
 
 /* -------------------- DATABASE CONNECTION -------------------- */
 
